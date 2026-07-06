@@ -44,6 +44,9 @@ npm-debug.log*
 # Claude Code
 /.claude
 
+# 数据库文件（本地自动生成，不入库）
+*.db
+
 # 数据集和模型文件（过大，不入库）
 /data/THUCNews/
 /data/processed/
