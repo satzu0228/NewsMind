@@ -1,0 +1,45 @@
+# 依赖
+/node_modules
+/oh_modules
+
+# 本地配置
+/local.properties
+
+# IDE
+/.idea
+/.vscode
+
+# 构建产物
+**/build
+/.hvigor
+.cxx
+
+# 代码格式化
+/.clangd
+/.clang-format
+/.clang-tidy
+
+# 测试
+**/.test
+
+# 分析
+/.appanalyzer
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# 日志
+*.log
+npm-debug.log*
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# Claude Code
+/.claude
