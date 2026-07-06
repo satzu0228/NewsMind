@@ -74,7 +74,7 @@ def download_thucnews():
     """
     # 检查是否已经存在
     if DATA_DIR.exists() and any(DATA_DIR.iterdir()):
-        print(f"[✓] 数据集已存在于: {DATA_DIR}")
+        print(f"[[OK]] 数据集已存在于: {DATA_DIR}")
         return True
 
     print("[!] 未找到本地数据集，尝试自动下载...")
@@ -101,11 +101,11 @@ def download_thucnews():
                 with open(cat_dir / f"{file_id}.txt", 'w', encoding='utf-8') as f:
                     f.write(text)
 
-        print("[✓] 从 HuggingFace 下载完成！")
+        print("[[OK]] 从 HuggingFace 下载完成！")
         return True
 
     except Exception as e:
-        print(f"[✗] HuggingFace 下载失败: {e}")
+        print(f"[[FAIL]] HuggingFace 下载失败: {e}")
         print("     尝试其他方法...")
 
     # 方法2: 从清华NLP镜像下载
@@ -139,11 +139,11 @@ def download_thucnews():
 
         # 清理压缩包
         zip_path.unlink()
-        print("[✓] 数据集下载并解压完成！")
+        print("[[OK]] 数据集下载并解压完成！")
         return True
 
     except Exception as e:
-        print(f"[✗] 自动下载失败: {e}")
+        print(f"[[FAIL]] 自动下载失败: {e}")
 
     # 方法3: 提示手动下载
     print("""
@@ -322,7 +322,7 @@ def load_raw_data():
             except Exception as e:
                 print(f"    [!] 读取失败: {file_path} - {e}")
 
-    print(f"\n[✓] 共读取 {len(raw_data)} 篇文章（{total_files} 个文件）")
+    print(f"\n[[OK]] 共读取 {len(raw_data)} 篇文章（{total_files} 个文件）")
     return raw_data
 
 
@@ -373,7 +373,7 @@ def process_data(raw_data: list, stopwords: set):
             "token_length": len(tokenized.split())  # 分词后词数
         })
 
-    print(f"\n[✓] 数据处理完成!")
+    print(f"\n[[OK]] 数据处理完成!")
     print(f"    有效数据: {len(cleaned_data)} 条")
     print(f"    过滤无效: {invalid_count} 条")
     print(f"    去除重复: {duplicate_count} 条")
@@ -419,7 +419,7 @@ def split_dataset(data: list):
     random.shuffle(val_data)
     random.shuffle(test_data)
 
-    print(f"\n[✓] 数据集划分完成:")
+    print(f"\n[[OK]] 数据集划分完成:")
     print(f"    训练集: {len(train_data)} 条 ({len(train_data)/max(len(data),1)*100:.1f}%)")
     print(f"    验证集: {len(val_data)} 条 ({len(val_data)/max(len(data),1)*100:.1f}%)")
     print(f"    测试集: {len(test_data)} 条 ({len(test_data)/max(len(data),1)*100:.1f}%)")
@@ -433,7 +433,7 @@ def save_json(data: list, filepath: Path, desc: str = ""):
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     file_size = filepath.stat().st_size / (1024 * 1024)
-    print(f"  [✓] {desc}: {filepath} ({len(data)} 条, {file_size:.1f} MB)")
+    print(f"  [[OK]] {desc}: {filepath} ({len(data)} 条, {file_size:.1f} MB)")
 
 
 # ============================================
@@ -616,7 +616,7 @@ def visualize_data(data: dict, stats: dict):
     plt.savefig(viz_path, dpi=150, bbox_inches='tight',
                 facecolor='white', edgecolor='none')
     plt.close()
-    print(f"  [✓] 可视化图表已保存: {viz_path}")
+    print(f"  [[OK]] 可视化图表已保存: {viz_path}")
 
     # 单独生成类别分布饼图（更清晰）
     fig2, ax_pie = plt.subplots(figsize=(10, 10))
@@ -640,7 +640,7 @@ def visualize_data(data: dict, stats: dict):
     plt.savefig(pie_path, dpi=150, bbox_inches='tight',
                 facecolor='white', edgecolor='none')
     plt.close()
-    print(f"  [✓] 类别饼图已保存: {pie_path}")
+    print(f"  [[OK]] 类别饼图已保存: {pie_path}")
 
 
 # ============================================
@@ -670,7 +670,7 @@ def main():
     print(" 步骤0/6: 准备数据集")
     print("=" * 40)
     if not download_thucnews():
-        print("[✗] 数据集未就绪，无法继续。请手动下载后重试。")
+        print("[[FAIL]] 数据集未就绪，无法继续。请手动下载后重试。")
         return
 
     # ===== 步骤1: 加载停用词 =====
@@ -678,7 +678,7 @@ def main():
     print(" 步骤1/6: 加载停用词表")
     print("=" * 40)
     stopwords = load_stopwords()
-    print(f"[✓] 加载了 {len(stopwords)} 个停用词")
+    print(f"[[OK]] 加载了 {len(stopwords)} 个停用词")
 
     # ===== 步骤2: 读取原始数据 =====
     print("\n" + "=" * 40)
@@ -687,7 +687,7 @@ def main():
     raw_data = load_raw_data()
 
     if not raw_data:
-        print("[✗] 未读取到任何数据！请检查 data/THUCNews/ 目录结构。")
+        print("[[FAIL]] 未读取到任何数据！请检查 data/THUCNews/ 目录结构。")
         return
 
     # ===== 步骤3: 数据处理 =====
@@ -720,7 +720,7 @@ def main():
     stats = compute_statistics(all_data)
     with open(STATS_FILE, 'w', encoding='utf-8') as f:
         json.dump(stats, f, ensure_ascii=False, indent=2)
-    print(f"  [✓] 统计信息已保存: {STATS_FILE}")
+    print(f"  [[OK]] 统计信息已保存: {STATS_FILE}")
 
     # ===== 步骤6: 数据可视化 =====
     print("\n" + "=" * 40)
@@ -730,7 +730,7 @@ def main():
 
     # ===== 输出最终总结 =====
     print("\n" + "=" * 60)
-    print(" ✅ 数据预处理全部完成！")
+    print(" [DONE] 数据预处理全部完成！")
     print("=" * 60)
     print(f"  训练集:    {TRAIN_FILE}      ({len(train_data):,} 条)")
     print(f"  验证集:    {VAL_FILE}        ({len(val_data):,} 条)")

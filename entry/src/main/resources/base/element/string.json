@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "module description"
+      "value": "NewsMind - 智能新闻摘要助手"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "description"
+      "value": "基于BERT+TextRank+T5的新闻自动摘要系统"
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "NewsMind"
     }
   ]
 }
