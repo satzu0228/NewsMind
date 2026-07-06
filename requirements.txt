@@ -1,0 +1,36 @@
+# ============================================
+# NewsMind - Python 后端依赖
+# ============================================
+
+# --- 数据处理 ---
+jieba>=0.42.1              # 中文分词
+numpy>=1.24.0              # 数值计算
+
+# --- 可视化 ---
+matplotlib>=3.7.0          # 数据可视化
+seaborn>=0.12.0            # 统计可视化
+
+# --- 进度显示 ---
+tqdm>=4.65.0               # 进度条
+
+# --- Web 框架 ---
+fastapi>=0.104.0           # REST API 框架
+uvicorn>=0.24.0            # ASGI 服务器
+pydantic>=2.5.0            # 数据验证
+
+# --- 数据库 ---
+sqlalchemy>=2.0.0          # ORM
+aiosqlite>=0.19.0          # 异步 SQLite
+
+# --- AI/ML ---
+torch>=2.0.0               # PyTorch 深度学习框架
+transformers>=4.35.0       # HuggingFace Transformers (BERT)
+datasets>=2.14.0           # HuggingFace 数据集
+scikit-learn>=1.3.0        # 机器学习工具
+
+# --- 文本评估 ---
+rouge-score>=0.1.2         # ROUGE 评估指标
+
+# --- 工具 ---
+requests>=2.31.0           # HTTP 请求
+python-multipart>=0.0.6    # 文件上传支持
