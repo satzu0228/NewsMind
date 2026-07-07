@@ -37,10 +37,8 @@ async def submit_feedback(
     ```
     """
     if request.news_id is None and request.summary_id is None:
-        raise HTTPException(
-            status_code=422,
-            detail="至少需要提供 news_id 或 summary_id 之一",
-        )
+        # 通用反馈（从“我的”页面进入），不强制要求关联新闻/摘要
+        pass
 
     feedback = feedback_service.add_feedback(
         db,
