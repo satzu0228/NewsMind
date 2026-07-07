@@ -74,6 +74,7 @@ export interface FavoriteItem {
   news_id: number
   category: string
   content_preview: string
+  length: number
   created_at: string
 }
 

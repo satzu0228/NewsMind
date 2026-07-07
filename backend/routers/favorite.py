@@ -70,18 +70,23 @@ async def remove_favorite(
 async def get_favorites(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页条数"),
+    category: str = Query(None, description="分类筛选"),
+    keyword: str = Query(None, description="关键词搜索"),
     db: Session = Depends(get_db),
 ):
     """
     ## 获取收藏列表
 
-    按收藏时间倒序排列。
+    按收藏时间倒序排列，支持分类和关键词过滤。
 
     ### 示例:
     - `GET /favorite?page=1&page_size=20`
+    - `GET /favorite?category=科技`
+    - `GET /favorite?keyword=人工智能`
     """
     favorites, total = favorite_service.get_favorites(
         db, page=page, page_size=page_size,
+        category=category, keyword=keyword,
     )
 
     items = []
@@ -92,6 +97,7 @@ async def get_favorites(
             news_id=fav.news_id,
             category=news.category if news else None,
             content_preview=news.content[:200] if news and news.content else None,
+            length=news.length if news else 0,
             created_at=fav.created_at,
         ))
 

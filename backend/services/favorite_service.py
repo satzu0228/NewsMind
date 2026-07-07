@@ -3,7 +3,7 @@
 # 功能: 收藏业务逻辑
 # ============================================
 
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -63,13 +63,27 @@ def remove_favorite(db: Session, news_id: int) -> bool:
     return True
 
 
-def get_favorites(db: Session, page: int = 1, page_size: int = 20) -> tuple:
+def get_favorites(
+    db: Session,
+    page: int = 1,
+    page_size: int = 20,
+    category: Optional[str] = None,
+    keyword: Optional[str] = None,
+) -> tuple:
     """
     获取收藏列表（分页）
+    支持按分类和关键词过滤。
     返回:
         (收藏列表, 总数)
     """
-    query = db.query(Favorite).order_by(Favorite.created_at.desc())
+    query = db.query(Favorite).join(News, Favorite.news_id == News.id)
+
+    if category:
+        query = query.filter(News.category == category)
+    if keyword:
+        query = query.filter(News.content.contains(keyword))
+
+    query = query.order_by(Favorite.created_at.desc())
 
     total = query.count()
     offset = (page - 1) * page_size

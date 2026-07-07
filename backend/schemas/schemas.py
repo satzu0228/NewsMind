@@ -99,6 +99,7 @@ class FavoriteResponse(BaseModel):
     news_id: int
     category: Optional[str] = None
     content_preview: Optional[str] = None
+    length: Optional[int] = 0
     created_at: Optional[datetime] = None
 
     class Config:

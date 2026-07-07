@@ -89,8 +89,17 @@ export async function removeFavorite(newsId: number): Promise<MessageResponse> {
 /**
  * 获取收藏列表
  */
-export async function fetchFavorites(page: number, pageSize: number): Promise<FavoriteListResponse> {
-  return get<FavoriteListResponse>(`${ApiConfig.FAVORITE}?page=${page}&page_size=${pageSize}`)
+export async function fetchFavorites(
+  page: number, pageSize: number, category?: string, keyword?: string
+): Promise<FavoriteListResponse> {
+  let url: string = `${ApiConfig.FAVORITE}?page=${page}&page_size=${pageSize}`
+  if (category && category.length > 0) {
+    url += `&category=${encodeURIComponent(category)}`
+  }
+  if (keyword && keyword.length > 0) {
+    url += `&keyword=${encodeURIComponent(keyword)}`
+  }
+  return get<FavoriteListResponse>(url)
 }
 
 // ============================================
