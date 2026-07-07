@@ -19,9 +19,18 @@ def get_summarizer():
     """获取或初始化摘要引擎（单例）"""
     global _summarizer
     if _summarizer is None:
-        from backend.ai.summarizer import NewsSummarizer
+        from backend.ai.config import MODEL_DIR
+        from backend.ai.summarizer import BertEncoder, NewsSummarizer, T5Summarizer
         print("[*] 正在加载 BERT + T5 摘要模型（首次启动较慢，约30-60秒）...")
-        _summarizer = NewsSummarizer()
+        bert = BertEncoder()
+        default_model_path = MODEL_DIR / "t5_summarizer_best"
+        if default_model_path.exists():
+            print(f"[*] 使用微调摘要模型: {default_model_path}")
+            t5 = T5Summarizer(model_path=str(default_model_path))
+        else:
+            print("[!] 未找到微调摘要模型，使用 TextRank 快速摘要模式")
+            t5 = None
+        _summarizer = NewsSummarizer(bert_encoder=bert, t5_summarizer=t5)
         print("[✓] 摘要引擎就绪")
     return _summarizer
 

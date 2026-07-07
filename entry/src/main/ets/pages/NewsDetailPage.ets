@@ -4,11 +4,11 @@
 // ============================================
 
 import { NewsDetail, SummaryResponse } from '../models/NewsModel'
-import { fetchNewsDetail, generateSummary, addFavorite, removeFavorite } from '../api/NewsApi'
+import { fetchNewsDetail, generateSummary, addFavorite, removeFavorite, submitFeedback } from '../api/NewsApi'
 import { LoadingView, EmptyView, ErrorView } from '../components/LoadingView'
-import { router } from '@kit.ArkUI'
-import { promptAction } from '@kit.ArkUI'
-import { pasteboard } from '@kit.BasicServicesKit'
+import router from '@ohos.router'
+import promptAction from '@ohos.promptAction'
+import pasteboard from '@ohos.pasteboard'
 
 /**
  * 新闻详情页
@@ -26,6 +26,9 @@ export struct NewsDetailPage {
   @State summary: SummaryResponse | null = null
   @State showAbstractive: boolean = true
   @State isFavorite: boolean = false
+  @State feedbackRating: number = 0
+  @State feedbackComment: string = ''
+  @State isSubmittingFeedback: boolean = false
 
   aboutToAppear(): void {
     const params: Record<string, Object> = router.getParams() as Record<string, Object>
@@ -55,6 +58,8 @@ export struct NewsDetailPage {
     this.isGeneratingSummary = true
     try {
       this.summary = await generateSummary(this.newsId, undefined, 5)
+      this.feedbackRating = 0
+      this.feedbackComment = ''
       promptAction.showToast({ message: `摘要生成成功 (${this.summary.inference_time.toFixed(2)}s)`, duration: 2000 })
     } catch (err) {
       promptAction.showToast({ message: '摘要生成失败，请重试', duration: 2000 })
@@ -89,6 +94,34 @@ export struct NewsDetailPage {
       promptAction.showToast({ message: '已复制到剪贴板', duration: 1500 })
     } catch (err) {
       promptAction.showToast({ message: '已复制到剪贴板', duration: 1500 })
+    }
+  }
+
+  private async onSubmitFeedback(): Promise<void> {
+    if (!this.summary) {
+      promptAction.showToast({ message: '请先生成摘要', duration: 1500 })
+      return
+    }
+    if (this.feedbackRating <= 0) {
+      promptAction.showToast({ message: '请选择评分', duration: 1500 })
+      return
+    }
+    if (this.isSubmittingFeedback) return
+
+    this.isSubmittingFeedback = true
+    try {
+      await submitFeedback(
+        this.feedbackRating,
+        this.feedbackComment,
+        this.newsId,
+        this.summary.summary_id
+      )
+      promptAction.showToast({ message: '反馈已提交', duration: 1500 })
+      this.feedbackComment = ''
+    } catch (err) {
+      promptAction.showToast({ message: '反馈提交失败', duration: 1500 })
+    } finally {
+      this.isSubmittingFeedback = false
     }
   }
 
@@ -248,12 +281,64 @@ export struct NewsDetailPage {
         .backgroundColor('#F8F8FA')
         .borderRadius(8)
         .padding(12)
+
+      this.buildFeedbackSection()
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 12, bottom: 16 })
     .backgroundColor('#FFFFFF')
     .borderRadius(12)
     .margin({ left: 16, right: 16, top: 12 })
+  }
+
+  @Builder
+  buildFeedbackSection() {
+    Column() {
+      Divider().margin({ top: 14, bottom: 12 })
+
+      Row() {
+        Text('摘要评分')
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#333333')
+        Blank()
+        ForEach([1, 2, 3, 4, 5], (score: number) => {
+          Text(score <= this.feedbackRating ? '★' : '☆')
+            .fontSize(24)
+            .fontColor(score <= this.feedbackRating ? '#FFB400' : '#C7C7CC')
+            .margin({ left: 4 })
+            .onClick(() => {
+              this.feedbackRating = score
+            })
+        })
+      }
+      .width('100%')
+
+      TextArea({
+        placeholder: '写下你的建议，例如摘要是否准确、是否遗漏重点',
+        text: this.feedbackComment
+      })
+        .height(82)
+        .fontSize(14)
+        .backgroundColor('#F8F8FA')
+        .borderRadius(8)
+        .margin({ top: 10 })
+        .onChange((value: string) => {
+          this.feedbackComment = value
+        })
+
+      Button(this.isSubmittingFeedback ? '提交中...' : '提交反馈')
+        .width('100%')
+        .height(40)
+        .fontSize(14)
+        .fontColor('#FFFFFF')
+        .backgroundColor(this.feedbackRating > 0 ? '#34C759' : '#C7C7CC')
+        .borderRadius(20)
+        .margin({ top: 10 })
+        .enabled(this.feedbackRating > 0 && !this.isSubmittingFeedback)
+        .onClick(() => this.onSubmitFeedback())
+    }
+    .width('100%')
   }
 
   @Builder

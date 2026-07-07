@@ -80,4 +80,4 @@ MAX_INFERENCE_TIME = 1.5         # 单篇最大推理时间（秒）
 # ============================================
 SUMMARY_MIN_LENGTH = 30           # 摘要最小长度
 SUMMARY_MAX_LENGTH = 150          # 摘要最大长度
-NUM_BEAMS = 4                     # Beam Search 束宽（推理用）
+NUM_BEAMS = 1                     # Beam Search 束宽（推理用，1=贪心解码，速度更快）

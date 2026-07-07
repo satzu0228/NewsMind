@@ -7,12 +7,13 @@
 // ============================================
 
 import { NewsItem, NewsListResponse, FavoriteItem, FavoriteListResponse, HistoryItem, HistoryListResponse } from '../models/NewsModel'
-import { fetchNewsList, fetchCategories, fetchFavorites, removeFavorite, fetchHistory } from '../api/NewsApi'
+import { fetchNewsList, fetchCategories, fetchFavorites, removeFavorite, fetchHistory, submitFeedback } from '../api/NewsApi'
 import { NewsCard } from '../components/NewsCard'
 import { CategoryTab } from '../components/CategoryTab'
 import { SearchBar } from '../components/SearchBar'
 import { LoadingView, EmptyView, ErrorView } from '../components/LoadingView'
-import { router, promptAction } from '@kit.ArkUI'
+import router from '@ohos.router'
+import promptAction from '@ohos.promptAction'
 
 /**
  * 主页面 - 底部 Tab 导航容器
@@ -348,6 +349,10 @@ interface MenuItem {
 struct ProfileContent {
   @State recentHistory: HistoryItem[] = []
   @State isLoadingHistory: boolean = false
+  @State showFeedbackPanel: boolean = false
+  @State profileFeedbackRating: number = 0
+  @State profileFeedbackComment: string = ''
+  @State isSubmittingProfileFeedback: boolean = false
 
   private menuItems: MenuItem[] = [
     { icon: '🕐', title: '阅读历史', subtitle: '查看最近浏览的新闻' },
@@ -369,6 +374,62 @@ struct ProfileContent {
       // 静默
     } finally {
       this.isLoadingHistory = false
+    }
+  }
+
+  private onShowAllHistory(): void {
+    promptAction.showToast({ message: `History: ${this.recentHistory.length} recent items`, duration: 1800 })
+  }
+
+  private onOpenHistoryItem(item: HistoryItem): void {
+    router.pushUrl({
+      url: 'pages/NewsDetailPage',
+      params: { news_id: item.news_id, category: item.category }
+    })
+  }
+
+  private onMenuClick(index: number): void {
+    if (index === 0) {
+      promptAction.showToast({ message: `Showing ${this.recentHistory.length} recent history items`, duration: 1800 })
+      return
+    }
+    if (index === 1) {
+      AlertDialog.show({
+        title: 'Stats',
+        message: `Recent history: ${this.recentHistory.length}\nRead and summary records are connected to the backend history API.`,
+        primaryButton: { value: 'OK', action: () => {} }
+      })
+      return
+    }
+    if (index === 2) {
+      this.showFeedbackPanel = !this.showFeedbackPanel
+      return
+    }
+    AlertDialog.show({
+      title: 'About NewsMind',
+      message: 'NewsMind 1.0.0\nNews summarization app based on ArkTS, BERT, TextRank and Transformer.',
+      primaryButton: { value: 'OK', action: () => {} }
+    })
+  }
+
+  private async onSubmitProfileFeedback(): Promise<void> {
+    if (this.profileFeedbackRating <= 0) {
+      promptAction.showToast({ message: 'Please select a rating first', duration: 1500 })
+      return
+    }
+    if (this.isSubmittingProfileFeedback) return
+
+    this.isSubmittingProfileFeedback = true
+    try {
+      await submitFeedback(this.profileFeedbackRating, this.profileFeedbackComment)
+      promptAction.showToast({ message: 'Feedback submitted', duration: 1500 })
+      this.profileFeedbackRating = 0
+      this.profileFeedbackComment = ''
+      this.showFeedbackPanel = false
+    } catch (err) {
+      promptAction.showToast({ message: 'Feedback failed', duration: 1500 })
+    } finally {
+      this.isSubmittingProfileFeedback = false
     }
   }
 
@@ -404,6 +465,7 @@ struct ProfileContent {
               Text('查看全部 >').fontSize(12).fontColor('#007AFF')
             }
             .width('100%').margin({ bottom: 10 })
+            .onClick(() => this.onShowAllHistory())
             if (this.isLoadingHistory) {
               LoadingView({ message: '加载中...' }).height(80)
             } else if (this.recentHistory.length === 0) {
@@ -422,6 +484,7 @@ struct ProfileContent {
                     .borderRadius(4).padding({ left: 6, right: 6, top: 2, bottom: 2 })
                 }
                 .width('100%').padding({ top: 8, bottom: 8 })
+                .onClick(() => this.onOpenHistoryItem(item))
               })
             }
           }
@@ -441,6 +504,7 @@ struct ProfileContent {
                 Text('>').fontSize(16).fontColor('#CCCCCC')
               }
               .width('100%').height(56).padding({ left: 16, right: 16 })
+              .onClick(() => this.onMenuClick(index))
               if (index < this.menuItems.length - 1) {
                 Divider().margin({ left: 54 })
               }
@@ -448,6 +512,60 @@ struct ProfileContent {
           }
           .width('100%').backgroundColor('#FFFFFF').borderRadius(12)
           .margin({ left: 16, right: 16, top: 12 })
+
+          if (this.showFeedbackPanel) {
+            Column() {
+              Text('Feedback')
+                .fontSize(18)
+                .fontWeight(FontWeight.Medium)
+                .width('100%')
+
+              Row() {
+                Text('Rating').fontSize(14).fontColor('#666666')
+                Blank()
+                ForEach([1, 2, 3, 4, 5], (score: number) => {
+                  Text(score <= this.profileFeedbackRating ? '*' : '-')
+                    .fontSize(28)
+                    .fontColor(score <= this.profileFeedbackRating ? '#FFB400' : '#C7C7CC')
+                    .margin({ left: 4 })
+                    .onClick(() => {
+                      this.profileFeedbackRating = score
+                    })
+                })
+              }
+              .width('100%')
+              .margin({ top: 12 })
+
+              TextArea({
+                placeholder: 'Write your suggestion here',
+                text: this.profileFeedbackComment
+              })
+                .height(96)
+                .fontSize(14)
+                .backgroundColor('#F8F8FA')
+                .borderRadius(8)
+                .margin({ top: 12 })
+                .onChange((value: string) => {
+                  this.profileFeedbackComment = value
+                })
+
+              Button(this.isSubmittingProfileFeedback ? 'Submitting...' : 'Submit Feedback')
+                .width('100%')
+                .height(42)
+                .fontSize(15)
+                .fontColor('#FFFFFF')
+                .backgroundColor(this.profileFeedbackRating > 0 ? '#34C759' : '#C7C7CC')
+                .borderRadius(21)
+                .margin({ top: 12 })
+                .enabled(this.profileFeedbackRating > 0 && !this.isSubmittingProfileFeedback)
+                .onClick(() => this.onSubmitProfileFeedback())
+            }
+            .width('100%')
+            .padding(16)
+            .backgroundColor('#FFFFFF')
+            .borderRadius(12)
+            .margin({ left: 16, right: 16, top: 12 })
+          }
         }
         .padding({ bottom: 24 })
       }

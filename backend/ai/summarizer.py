@@ -83,6 +83,66 @@ def split_sentences(text: str) -> List[str]:
     return sentences
 
 
+def is_low_quality_generated_summary(summary: str) -> bool:
+    """检测未微调生成模型常见的异常输出，异常时回退到 TextRank 摘要。"""
+    if not summary or len(summary.strip()) < SUMMARY_MIN_LENGTH:
+        return True
+    if "extra" in summary.lower():
+        return True
+    chinese_chars = re.findall(r'[\u4e00-\u9fff]', summary)
+    return len(chinese_chars) / max(len(summary), 1) < 0.35
+
+
+_SENTENCE_END_RE = re.compile(r'[\u3002\uff01\uff1f!?;\uff1b\n]+')
+_CLAUSE_END_RE = re.compile(r'[\uff0c,\u3001\uff1b;]+')
+
+
+def _normalize_for_compare(text: str) -> str:
+    return re.sub(r'[\s\u3000\uff0c,\u3001\u3002.!?\uff01\uff1f\uff1b;]+', '', text or '')
+
+
+def _is_too_close_to_original(summary: str, original: str) -> bool:
+    summary_norm = _normalize_for_compare(summary)
+    original_norm = _normalize_for_compare(original)
+    if not summary_norm or not original_norm:
+        return True
+    if summary_norm == original_norm:
+        return True
+    if summary_norm in original_norm and len(summary_norm) >= len(original_norm) * 0.85:
+        return True
+    return len(summary) >= len(original) * 0.85
+
+
+def _finish_sentence(text: str) -> str:
+    text = (text or '').strip(' \t\r\n\uff0c,\u3001\uff1b;\u3002.!?\uff01\uff1f')
+    if not text:
+        return ''
+    return text + '\u3002'
+
+
+def make_concise_summary(original: str, candidate: str = '') -> str:
+    """Return a concise summary that is intentionally shorter than the source."""
+    original = (original or '').strip()
+    candidate = (candidate or '').strip()
+    if not original:
+        return ''
+    if len(original) <= SUMMARY_MIN_LENGTH:
+        return original
+
+    limit = max(SUMMARY_MIN_LENGTH, min(SUMMARY_MAX_LENGTH, int(len(original) * 0.65)))
+    if candidate and not _is_too_close_to_original(candidate, original) and len(candidate) <= limit:
+        return _finish_sentence(candidate)
+
+    sentences = [s.strip() for s in _SENTENCE_END_RE.split(original) if s.strip()]
+    source = sentences[0] if sentences else original
+    if len(source) > limit:
+        clauses = [s.strip() for s in _CLAUSE_END_RE.split(source) if s.strip()]
+        source = clauses[0] if clauses else source
+    if len(source) > limit:
+        source = source[:limit]
+    return _finish_sentence(source)
+
+
 # ============================================
 # 3. BERT 句子向量编码器
 # ============================================
@@ -397,10 +457,11 @@ class NewsSummarizer:
         if len(cleaned) < TEXTRANK_MIN_SENTENCE_LENGTH:
             # 文本过短，原文即摘要
             elapsed = time.time() - start_time
+            concise = make_concise_summary(cleaned)
             return {
-                "extractive_summary": cleaned,
-                "abstractive_summary": cleaned,
-                "key_sentences": [(cleaned, 1.0)],
+                "extractive_summary": concise,
+                "abstractive_summary": concise,
+                "key_sentences": [(concise, 1.0)],
                 "inference_time": elapsed,
                 "sentence_count": 1
             }
@@ -411,9 +472,10 @@ class NewsSummarizer:
 
         if not sentences:
             elapsed = time.time() - start_time
+            concise = make_concise_summary(cleaned)
             result.update({
-                "extractive_summary": cleaned[:200],
-                "abstractive_summary": cleaned[:200],
+                "extractive_summary": concise,
+                "abstractive_summary": concise,
                 "key_sentences": [],
                 "inference_time": elapsed,
             })
@@ -423,8 +485,10 @@ class NewsSummarizer:
         embeddings = self.bert.encode_sentences(sentences)
 
         # 步骤4: TextRank 提取关键句
-        ranked = self.textrank.extract(sentences, embeddings, top_k=top_k)
-        key_sentences_str = "。".join([s for s, _, _ in ranked]) + "。"
+        effective_top_k = min(top_k, max(1, int(np.ceil(len(sentences) * 0.4))))
+        ranked = self.textrank.extract(sentences, embeddings, top_k=effective_top_k)
+        key_sentences_str = "\u3002".join([s for s, _, _ in ranked]) + "\u3002"
+        key_sentences_str = make_concise_summary(cleaned, key_sentences_str)
 
         result["key_sentences"] = [(s, round(sc, 4)) for s, sc, _ in ranked]
         result["extractive_summary"] = key_sentences_str
@@ -434,6 +498,9 @@ class NewsSummarizer:
             # 将关键句拼接作为 T5 的输入，生成更精炼的摘要
             try:
                 abstractive = self.t5.generate_summary(key_sentences_str)
+                if is_low_quality_generated_summary(abstractive) or _is_too_close_to_original(abstractive, cleaned):
+                    abstractive = key_sentences_str
+                abstractive = make_concise_summary(cleaned, abstractive)
                 result["abstractive_summary"] = abstractive
             except Exception as e:
                 print(f"[!] T5 生成失败: {e}")

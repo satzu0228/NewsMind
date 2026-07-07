@@ -8,7 +8,7 @@
  */
 export class ApiConfig {
   // 开发环境地址
-  static readonly BASE_URL: string = "http://10.0.2.2:8000"
+  static readonly BASE_URL: string = "http://192.168.31.21:8000"
 
   // 请求超时（毫秒）
   static readonly TIMEOUT: number = 30000

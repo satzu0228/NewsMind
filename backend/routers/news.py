@@ -57,6 +57,18 @@ async def get_news_list(
     )
 
 
+@router.get("/categories/all", summary="获取所有新闻类别")
+async def get_categories(db: Session = Depends(get_db)):
+    """
+    ## 获取所有新闻类别
+
+    ### 示例:
+    - `GET /news/categories/all`
+    """
+    categories = news_service.get_categories(db)
+    return {"categories": categories, "count": len(categories)}
+
+
 @router.get("/{news_id}", response_model=NewsDetail, summary="获取新闻详情")
 async def get_news_detail(
     news_id: int,
@@ -87,15 +99,3 @@ async def get_news_detail(
         is_favorite=news_service.check_is_favorite(db, news_id),
         created_at=news.created_at,
     )
-
-
-@router.get("/categories/all", summary="获取所有新闻类别")
-async def get_categories(db: Session = Depends(get_db)):
-    """
-    ## 获取所有新闻类别
-
-    ### 示例:
-    - `GET /news/categories/all`
-    """
-    categories = news_service.get_categories(db)
-    return {"categories": categories, "count": len(categories)}

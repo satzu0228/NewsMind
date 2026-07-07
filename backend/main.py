@@ -7,6 +7,10 @@
 import sys
 from pathlib import Path
 
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+
 # 确保项目根目录在 sys.path 中
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
