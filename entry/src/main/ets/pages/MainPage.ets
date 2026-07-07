@@ -62,6 +62,9 @@ struct MainPage {
       this.currentTabIndex = index
       if (index === 1) {
         this.favoriteRefreshCounter++
+        AppStorage.SetOrCreate('favoriteRefreshTick', Date.now())
+      } else if (index === 2) {
+        AppStorage.SetOrCreate('historyRefreshTick', Date.now())
       }
     })
     .width('100%')
@@ -262,6 +265,9 @@ struct HomeContent {
 
 @Component
 struct FavoriteContent {
+  @StorageLink('favoriteRefreshTick')
+  @Watch('onFavoriteRefreshChanged')
+  favoriteRefreshTick: number = 0
   @State favorites: FavoriteItem[] = []
   @State categories: string[] = []
   @State selectedCategory: string = ''
@@ -277,6 +283,10 @@ struct FavoriteContent {
   }
 
   onRefreshTriggered(): void {
+    this.loadFavorites()
+  }
+
+  private onFavoriteRefreshChanged(): void {
     this.loadFavorites()
   }
 
@@ -410,6 +420,9 @@ interface MenuItem {
 
 @Component
 struct ProfileContent {
+  @StorageLink('historyRefreshTick')
+  @Watch('onHistoryRefreshChanged')
+  historyRefreshTick: number = 0
   @State recentHistory: HistoryItem[] = []
   @State isLoadingHistory: boolean = false
 
@@ -421,6 +434,10 @@ struct ProfileContent {
   ]
 
   aboutToAppear(): void {
+    this.loadHistory()
+  }
+
+  private onHistoryRefreshChanged(): void {
     this.loadHistory()
   }
 

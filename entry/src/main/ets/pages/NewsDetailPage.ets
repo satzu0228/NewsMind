@@ -45,6 +45,7 @@ export struct NewsDetailPage {
     try {
       this.newsDetail = await fetchNewsDetail(this.newsId)
       this.isFavorite = this.newsDetail.is_favorite
+      AppStorage.SetOrCreate('historyRefreshTick', Date.now())
     } catch (err) {
       this.hasError = true
       this.errorMessage = '新闻加载失败'
@@ -60,6 +61,7 @@ export struct NewsDetailPage {
       this.summary = await generateSummary(this.newsId, undefined, 5)
       this.feedbackRating = 0
       this.feedbackComment = ''
+      AppStorage.SetOrCreate('historyRefreshTick', Date.now())
       promptAction.showToast({ message: `摘要生成成功 (${this.summary.inference_time.toFixed(2)}s)`, duration: 2000 })
     } catch (err) {
       promptAction.showToast({ message: '摘要生成失败，请重试', duration: 2000 })
@@ -73,10 +75,12 @@ export struct NewsDetailPage {
       if (this.isFavorite) {
         await removeFavorite(this.newsId)
         this.isFavorite = false
+        AppStorage.SetOrCreate('favoriteRefreshTick', Date.now())
         promptAction.showToast({ message: '已取消收藏', duration: 1500 })
       } else {
         await addFavorite(this.newsId)
         this.isFavorite = true
+        AppStorage.SetOrCreate('favoriteRefreshTick', Date.now())
         promptAction.showToast({ message: '已添加收藏', duration: 1500 })
       }
     } catch (err) {
@@ -360,7 +364,7 @@ export struct NewsDetailPage {
     }
     .width('100%')
     .height(56)
-    .padding({ left: 24, right: 24 })
+    .padding({ left: 56, right: 56 })
     .backgroundColor('#FFFFFF')
     .shadow({ radius: 4, color: '#00000010' })
   }
