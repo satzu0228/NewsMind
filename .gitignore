@@ -51,6 +51,7 @@ npm-debug.log*
 # 数据集和模型文件（过大，不入库）
 /data/THUCNews/
 /data/processed/
+/data/__MACOSX/
 /trained_models/
 *.pth
 *.bin
