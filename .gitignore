@@ -1,6 +1,7 @@
 # 依赖
 /node_modules
 /oh_modules
+/work
 
 # 本地配置
 /local.properties

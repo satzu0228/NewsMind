@@ -1,0 +1,15 @@
+{
+  "name": "newsmind",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NewsMind HarmonyOS ArkTS app",
+  "ohos": {
+    "org": "huawei",
+    "buildTool": "hvigor",
+    "directoryLevel": "project"
+  },
+  "devDependencies": {
+    "@ohos/hvigor": "file:../../../../../../../Program Files/Huawei/DevEco Studio/tools/hvigor/hvigor",
+    "@ohos/hvigor-ohos-plugin": "file:../../../../../../../Program Files/Huawei/DevEco Studio/tools/hvigor/hvigor-ohos-plugin"
+  }
+}
