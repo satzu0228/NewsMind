@@ -17,12 +17,38 @@ export struct CategoryTab {
   build() {
     Scroll() {
       Row() {
-        // "全部" 按钮
-        this.TabButton('全部', this.selectedCategory === '')
+        // “全部” 按钮
+        Text('全部')
+          .fontSize(14)
+          .fontColor(this.selectedCategory === '' ? '#FFFFFF' : '#333333')
+          .fontWeight(this.selectedCategory === '' ? FontWeight.Bold : FontWeight.Normal)
+          .backgroundColor(this.selectedCategory === '' ? '#007AFF' : '#F5F5F5')
+          .borderRadius(20)
+          .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+          .margin({ right: 10 })
+          .onClick(() => {
+            this.selectedCategory = ''
+            if (this.onCategoryChanged) {
+              this.onCategoryChanged('')
+            }
+          })
 
         // 各类别按钮
         ForEach(this.categories, (category: string) => {
-          this.TabButton(category, this.selectedCategory === category)
+          Text(category)
+            .fontSize(14)
+            .fontColor(this.selectedCategory === category ? '#FFFFFF' : '#333333')
+            .fontWeight(this.selectedCategory === category ? FontWeight.Bold : FontWeight.Normal)
+            .backgroundColor(this.selectedCategory === category ? '#007AFF' : '#F5F5F5')
+            .borderRadius(20)
+            .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+            .margin({ right: 10 })
+            .onClick(() => {
+              this.selectedCategory = category
+              if (this.onCategoryChanged) {
+                this.onCategoryChanged(category)
+              }
+            })
         })
       }
       .padding({ left: 16, right: 16 })
@@ -31,26 +57,5 @@ export struct CategoryTab {
     .scrollBar(BarState.Off)
     .height(44)
     .width('100%')
-  }
-
-  /**
-   * 单个标签按钮
-   */
-  @Builder
-  TabButton(label: string, isSelected: boolean) {
-    Text(label)
-      .fontSize(14)
-      .fontColor(isSelected ? '#FFFFFF' : '#333333')
-      .fontWeight(isSelected ? FontWeight.Bold : FontWeight.Normal)
-      .backgroundColor(isSelected ? '#007AFF' : '#F5F5F5')
-      .borderRadius(20)
-      .padding({ left: 16, right: 16, top: 6, bottom: 6 })
-      .margin({ right: 10 })
-      .onClick(() => {
-        this.selectedCategory = (label === '全部') ? '' : label
-        if (this.onCategoryChanged) {
-          this.onCategoryChanged(this.selectedCategory)
-        }
-      })
   }
 }

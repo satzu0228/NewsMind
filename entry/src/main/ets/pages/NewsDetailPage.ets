@@ -352,17 +352,6 @@ export struct NewsDetailPage {
 
       Blank()
 
-      Button('生成摘要')
-        .fontSize(14)
-        .fontColor('#FFFFFF')
-        .backgroundColor('#007AFF')
-        .borderRadius(20)
-        .height(40)
-        .padding({ left: 20, right: 20 })
-        .onClick(() => this.onGenerateSummary())
-
-      Blank()
-
       Column() {
         Text('📤').fontSize(22)
         Text('分享').fontSize(11).fontColor('#666666').margin({ top: 2 })
