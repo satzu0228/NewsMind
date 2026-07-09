@@ -429,7 +429,6 @@ struct ProfileContent {
   private menuItems: MenuItem[] = [
     { icon: '🕐', title: '阅读历史', subtitle: '查看最近浏览的新闻' },
     { icon: '✏️', title: '编辑资料', subtitle: '修改用户名和头像' },
-    { icon: '📊', title: '数据统计', subtitle: '查看使用数据和分析' },
     { icon: '💬', title: '意见反馈', subtitle: '帮助我们改进产品' },
     { icon: 'ℹ️', title: '关于 NewsMind', subtitle: '版本 1.0.0 | BERT + T5' }
   ]
@@ -444,14 +443,6 @@ struct ProfileContent {
       return
     }
     if (index === 2) {
-      AlertDialog.show({
-        title: 'Stats',
-        message: 'Read and summary records are connected to the backend history API.',
-        primaryButton: { value: 'OK', action: () => {} }
-      })
-      return
-    }
-    if (index === 3) {
       router.pushUrl({ url: 'pages/FeedbackPage' })
       return
     }

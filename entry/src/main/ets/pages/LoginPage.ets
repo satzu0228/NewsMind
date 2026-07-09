@@ -24,7 +24,6 @@ export struct LoginPage {
   @State isLoading: boolean = false
   @State errorMessage: string = ''
   @State lastUsername: string = ''
-  @State passwordVisible: boolean = false
 
   aboutToAppear(): void {
     // 从 Preferences 读取上次登录的用户名
@@ -216,7 +215,7 @@ export struct LoginPage {
             Row() {
               Text('🔒').fontSize(16).margin({ right: 10 })
               TextInput({ text: this.password, placeholder: '请输入密码（至少4位）' })
-                .type(this.passwordVisible ? InputType.Normal : InputType.Password)
+                .type(InputType.Password)
                 .fontSize(15)
                 .fontColor('#333333')
                 .layoutWeight(1)
@@ -225,11 +224,6 @@ export struct LoginPage {
                 .onChange((value: string) => {
                   this.password = value
                   this.errorMessage = ''
-                })
-              Text(this.passwordVisible ? '🙈' : '👁️')
-                .fontSize(16)
-                .onClick(() => {
-                  this.passwordVisible = !this.passwordVisible
                 })
             }
             .width('100%')
@@ -330,7 +324,6 @@ export struct LoginPage {
                   this.isRegisterMode = !this.isRegisterMode
                   this.errorMessage = ''
                   this.confirmPassword = ''
-                  this.passwordVisible = false
                 })
             }
             .width('100%')
