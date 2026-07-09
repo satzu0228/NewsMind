@@ -136,7 +136,7 @@ export struct LoginPage {
               .fontColor('#FFFFFF')
               .letterSpacing(2)
 
-            Text('AI 智能新闻摘要')
+            Text('智能新闻摘要')
               .fontSize(14)
               .fontColor('rgba(255,255,255,0.75)')
               .margin({ top: 8 })
@@ -337,7 +337,7 @@ export struct LoginPage {
           .shadow({ radius: 16, color: 'rgba(0,0,0,0.08)', offsetX: 0, offsetY: 4 })
 
           // 底部版权
-          Text('NewsMind v1.0.0 · AI 驱动')
+          Text('NewsMind v1.0.0')
             .fontSize(11)
             .fontColor('#CCCCCC')
             .margin({ top: 32, bottom: 24 })

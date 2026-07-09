@@ -57,6 +57,19 @@ def generate_summary(
         if not news:
             raise ValueError(f"新闻不存在: ID={news_id}")
         text = news.content
+
+        # 检查是否已有摘要（优先返回已有摘要，避免重复生成）
+        existing = get_summary_by_news(db, news_id)
+        if existing:
+            return SummaryResponse(
+                news_id=news.id,
+                summary_id=existing.id,
+                extractive_summary=existing.extractive_summary,
+                abstractive_summary=existing.abstractive_summary,
+                inference_time=existing.inference_time,
+                rouge_l=existing.rouge_l,
+                created_at=existing.created_at,
+            )
     else:
         # 自动存入新闻
         news = get_or_create_news(db, text)

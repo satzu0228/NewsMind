@@ -228,7 +228,7 @@ export struct NewsDetailPage {
     Column() {
       Divider().margin({ top: 12, bottom: 12 })
 
-      Text('AI 智能摘要')
+      Text('智能生成摘要')
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
         .width('100%')

@@ -512,7 +512,7 @@ struct ProfileContent {
             .width(56).height(56).backgroundColor('#E3F2FD').borderRadius(28).justifyContent(FlexAlign.Center)
             Column() {
               Text(this.authUsername || 'NewsMind 用户').fontSize(17).fontWeight(FontWeight.Medium)
-              Text('AI 驱动 · 智能新闻摘要').fontSize(13).fontColor('#999999').margin({ top: 4 })
+              Text('BERT + TextRank 智能摘要').fontSize(13).fontColor('#999999').margin({ top: 4 })
             }
             .alignItems(HorizontalAlign.Start).margin({ left: 14 })
           }
