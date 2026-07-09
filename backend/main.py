@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from backend.database import init_db
-from backend.routers import news, summary, favorite, history, feedback
+from backend.routers import news, summary, favorite, history, feedback, auth
 
 
 # ============================================
@@ -89,6 +89,7 @@ app.add_middleware(
 # 注册路由
 # ============================================
 
+app.include_router(auth.router)
 app.include_router(news.router)
 app.include_router(summary.router)
 app.include_router(favorite.router)

@@ -6,7 +6,7 @@
 from typing import List
 from sqlalchemy.orm import Session
 
-from backend.models.models import History
+from backend.models.models import History, News
 
 
 def add_history(
@@ -38,21 +38,29 @@ def get_history(
     page: int = 1,
     page_size: int = 20,
     action: str = None,
+    category: str = None,
+    keyword: str = None,
 ) -> tuple:
     """
-    获取操作历史（分页 + 类型筛选）
+    获取操作历史（分页 + 类型/分类/关键词筛选）
     参数:
         db: 数据库会话
         page: 页码
         page_size: 每页条数
         action: 操作类型筛选（可选: read / summarize）
+        category: 分类筛选（可选）
+        keyword: 关键词搜索（可选，匹配正文内容）
     返回:
         (历史列表, 总数)
     """
-    query = db.query(History)
+    query = db.query(History).join(News, History.news_id == News.id)
 
     if action:
         query = query.filter(History.action == action)
+    if category:
+        query = query.filter(News.category == category)
+    if keyword:
+        query = query.filter(News.content.like(f"%{keyword}%"))
 
     query = query.order_by(History.created_at.desc())
 

@@ -22,10 +22,21 @@ export async function request<T>(url: string, method: http.RequestMethod, body?:
   const fullUrl: string = ApiConfig.BASE_URL + url
   const httpRequest: http.HttpRequest = http.createHttp()
 
+  // 构建请求头（自动携带 token）
+  const header: Record<string, string> = { 'Content-Type': 'application/json' }
+  try {
+    const token: string = AppStorage.Get<string>('authToken') || ''
+    if (token.length > 0) {
+      header['Authorization'] = `Bearer ${token}`
+    }
+  } catch (e) {
+    // AppStorage 未初始化时忽略
+  }
+
   // 构建请求选项
   const options: http.HttpRequestOptions = {
     method: method,
-    header: { 'Content-Type': 'application/json' },
+    header: header,
     connectTimeout: ApiConfig.TIMEOUT,
     readTimeout: ApiConfig.TIMEOUT
   }
@@ -75,4 +86,11 @@ export async function post<T>(url: string, body?: Object): Promise<T> {
  */
 export async function del<T>(url: string): Promise<T> {
   return request<T>(url, http.RequestMethod.DELETE)
+}
+
+/**
+ * PUT 请求
+ */
+export async function put<T>(url: string, body?: Object): Promise<T> {
+  return request<T>(url, http.RequestMethod.PUT, body)
 }

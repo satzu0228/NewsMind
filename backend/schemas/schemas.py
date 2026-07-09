@@ -9,6 +9,49 @@ from pydantic import BaseModel, Field
 
 
 # ============================================
+# 用户认证相关
+# ============================================
+
+class RegisterRequest(BaseModel):
+    """注册请求"""
+    username: str = Field(..., min_length=1, max_length=50, description="用户名")
+    password: str = Field(..., min_length=4, max_length=50, description="密码")
+
+
+class LoginRequest(BaseModel):
+    """登录请求"""
+    username: str = Field(..., description="用户名")
+    password: str = Field(..., description="密码")
+
+
+class AuthResponse(BaseModel):
+    """登录/注册响应"""
+    success: bool = True
+    message: str = "操作成功"
+    token: Optional[str] = None
+    user_id: Optional[int] = None
+    username: Optional[str] = None
+    avatar: Optional[str] = None
+
+
+class UserProfile(BaseModel):
+    """用户资料"""
+    id: int
+    username: str
+    avatar: str
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UpdateProfileRequest(BaseModel):
+    """更新用户资料请求"""
+    username: Optional[str] = Field(default=None, min_length=1, max_length=50, description="新用户名")
+    avatar: Optional[str] = Field(default=None, max_length=10, description="新头像 emoji")
+
+
+# ============================================
 # News 相关
 # ============================================
 
@@ -123,6 +166,7 @@ class HistoryItem(BaseModel):
     action: str
     category: Optional[str] = None
     content_preview: Optional[str] = None
+    length: Optional[int] = 0
     created_at: Optional[datetime] = None
 
     class Config:

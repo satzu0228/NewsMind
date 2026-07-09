@@ -3,6 +3,46 @@
 // 功能: 数据模型定义（前端数据结构）
 // ============================================
 
+// --- 用户认证相关 ---
+
+/**
+ * 用户资料
+ */
+export interface UserProfile {
+  id: number
+  username: string
+  avatar: string
+  created_at: string
+}
+
+/**
+ * 登录/注册响应
+ */
+export interface AuthResponse {
+  success: boolean
+  message: string
+  token?: string
+  user_id?: number
+  username?: string
+  avatar?: string
+}
+
+/**
+ * 登录/注册请求体
+ */
+export class AuthCredential {
+  username: string = ''
+  password: string = ''
+}
+
+/**
+ * 更新资料请求体
+ */
+export class UpdateProfileBody {
+  username?: string
+  avatar?: string
+}
+
 // --- 新闻相关 ---
 
 /**
@@ -97,6 +137,7 @@ export interface HistoryItem {
   action: string             // read / summarize
   category: string
   content_preview: string
+  length: number
   created_at: string
 }
 

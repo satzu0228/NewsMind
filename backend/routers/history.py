@@ -19,20 +19,25 @@ async def get_history(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页条数"),
     action: str = Query(None, description="操作类型筛选: read / summarize"),
+    category: str = Query(None, description="分类筛选"),
+    keyword: str = Query(None, description="关键词搜索"),
     db: Session = Depends(get_db),
 ):
     """
     ## 获取操作历史记录
 
-    支持按操作类型筛选。
+    支持按操作类型、分类和关键词筛选。
 
     ### 示例:
     - `GET /history?page=1&page_size=20` — 全部历史
     - `GET /history?action=summarize` — 只看摘要生成记录
     - `GET /history?action=read` — 只看阅读记录
+    - `GET /history?category=科技` — 按分类筛选
+    - `GET /history?keyword=人工智能` — 关键词搜索
     """
     records, total = history_service.get_history(
         db, page=page, page_size=page_size, action=action,
+        category=category, keyword=keyword,
     )
 
     items = []
@@ -44,6 +49,7 @@ async def get_history(
             action=record.action,
             category=news.category if news else None,
             content_preview=news.content[:200] if news and news.content else None,
+            length=news.length if news else 0,
             created_at=record.created_at,
         ))
 

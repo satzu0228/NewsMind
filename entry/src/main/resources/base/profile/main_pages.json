@@ -2,6 +2,9 @@
   "src": [
     "pages/MainPage",
     "pages/NewsDetailPage",
-    "pages/FeedbackPage"
+    "pages/FeedbackPage",
+    "pages/HistoryPage",
+    "pages/LoginPage",
+    "pages/EditProfilePage"
   ]
 }

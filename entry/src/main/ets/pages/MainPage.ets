@@ -6,14 +6,17 @@
 // 因为 @Entry 页面不能被其他组件引用。
 // ============================================
 
-import { NewsItem, NewsListResponse, FavoriteItem, FavoriteListResponse, HistoryItem, HistoryListResponse } from '../models/NewsModel'
-import { fetchNewsList, fetchCategories, fetchFavorites, removeFavorite, fetchHistory } from '../api/NewsApi'
+import { NewsItem, NewsListResponse, FavoriteItem, FavoriteListResponse } from '../models/NewsModel'
+import { fetchNewsList, fetchCategories, fetchFavorites, removeFavorite, logoutUser } from '../api/NewsApi'
 import { NewsCard } from '../components/NewsCard'
 import { CategoryTab } from '../components/CategoryTab'
 import { SearchBar } from '../components/SearchBar'
 import { LoadingView, EmptyView, ErrorView } from '../components/LoadingView'
 import router from '@ohos.router'
 import promptAction from '@ohos.promptAction'
+import dataPreferences from '@ohos.data.preferences'
+
+const PREF_NAME: string = 'NewsMindPrefs'
 
 /**
  * 主页面 - 底部 Tab 导航容器
@@ -420,64 +423,35 @@ interface MenuItem {
 
 @Component
 struct ProfileContent {
-  @StorageLink('historyRefreshTick')
-  @Watch('onHistoryRefreshChanged')
-  historyRefreshTick: number = 0
-  @State recentHistory: HistoryItem[] = []
-  @State isLoadingHistory: boolean = false
+  @StorageLink('authUsername') authUsername: string = ''
+  @StorageLink('authAvatar') authAvatar: string = '😀'
 
   private menuItems: MenuItem[] = [
     { icon: '🕐', title: '阅读历史', subtitle: '查看最近浏览的新闻' },
+    { icon: '✏️', title: '编辑资料', subtitle: '修改用户名和头像' },
     { icon: '📊', title: '数据统计', subtitle: '查看使用数据和分析' },
     { icon: '💬', title: '意见反馈', subtitle: '帮助我们改进产品' },
     { icon: 'ℹ️', title: '关于 NewsMind', subtitle: '版本 1.0.0 | BERT + T5' }
   ]
 
-  aboutToAppear(): void {
-    this.loadHistory()
-  }
-
-  private onHistoryRefreshChanged(): void {
-    this.loadHistory()
-  }
-
-  private async loadHistory(): Promise<void> {
-    this.isLoadingHistory = true
-    try {
-      const response: HistoryListResponse = await fetchHistory(1, 5)
-      this.recentHistory = response.items
-    } catch (err) {
-      // 静默
-    } finally {
-      this.isLoadingHistory = false
-    }
-  }
-
-  private onShowAllHistory(): void {
-    promptAction.showToast({ message: `History: ${this.recentHistory.length} recent items`, duration: 1800 })
-  }
-
-  private onOpenHistoryItem(item: HistoryItem): void {
-    router.pushUrl({
-      url: 'pages/NewsDetailPage',
-      params: { news_id: item.news_id, category: item.category }
-    })
-  }
-
   private onMenuClick(index: number): void {
     if (index === 0) {
-      promptAction.showToast({ message: `Showing ${this.recentHistory.length} recent history items`, duration: 1800 })
+      router.pushUrl({ url: 'pages/HistoryPage' })
       return
     }
     if (index === 1) {
+      router.pushUrl({ url: 'pages/EditProfilePage' })
+      return
+    }
+    if (index === 2) {
       AlertDialog.show({
         title: 'Stats',
-        message: `Recent history: ${this.recentHistory.length}\nRead and summary records are connected to the backend history API.`,
+        message: 'Read and summary records are connected to the backend history API.',
         primaryButton: { value: 'OK', action: () => {} }
       })
       return
     }
-    if (index === 2) {
+    if (index === 3) {
       router.pushUrl({ url: 'pages/FeedbackPage' })
       return
     }
@@ -485,6 +459,48 @@ struct ProfileContent {
       title: 'About NewsMind',
       message: 'NewsMind 1.0.0\nNews summarization app based on ArkTS, BERT, TextRank and Transformer.',
       primaryButton: { value: 'OK', action: () => {} }
+    })
+  }
+
+  private onLogout(): void {
+    AlertDialog.show({
+      title: '退出登录',
+      message: `确定要退出登录吗？`,
+      primaryButton: {
+        value: '取消',
+        action: () => {}
+      },
+      secondaryButton: {
+        value: '确定',
+        fontColor: '#FF3B30',
+        action: async () => {
+          try {
+            await logoutUser()
+          } catch (e) {
+            // 静默失败
+          }
+          // 清除登录状态
+          AppStorage.SetOrCreate('authToken', '')
+          AppStorage.SetOrCreate('authUsername', '')
+          AppStorage.SetOrCreate('authAvatar', '')
+          AppStorage.SetOrCreate('authUserId', 0)
+          AppStorage.SetOrCreate('isLoggedIn', false)
+          // 清除持久化数据
+          try {
+            const context = getContext(this)
+            const prefs: dataPreferences.Preferences = dataPreferences.getPreferencesSync(context, { name: PREF_NAME })
+            prefs.deleteSync('authToken')
+            prefs.deleteSync('authUserId')
+            prefs.deleteSync('authUsername')
+            prefs.deleteSync('authAvatar')
+            prefs.flush()
+          } catch (e) {
+            // 静默失败
+          }
+          // 跳转到登录页
+          router.replaceUrl({ url: 'pages/LoginPage' })
+        }
+      }
     })
   }
 
@@ -500,48 +516,14 @@ struct ProfileContent {
           // 用户卡片
           Row() {
             Column() {
-              Text('NM').fontSize(20).fontColor('#FFFFFF').fontWeight(FontWeight.Bold)
+              Text(this.authAvatar).fontSize(28)
             }
-            .width(56).height(56).backgroundColor('#007AFF').borderRadius(28).justifyContent(FlexAlign.Center)
+            .width(56).height(56).backgroundColor('#E3F2FD').borderRadius(28).justifyContent(FlexAlign.Center)
             Column() {
-              Text('NewsMind 用户').fontSize(17).fontWeight(FontWeight.Medium)
+              Text(this.authUsername || 'NewsMind 用户').fontSize(17).fontWeight(FontWeight.Medium)
               Text('AI 驱动 · 智能新闻摘要').fontSize(13).fontColor('#999999').margin({ top: 4 })
             }
             .alignItems(HorizontalAlign.Start).margin({ left: 14 })
-          }
-          .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(12)
-          .margin({ left: 16, right: 16, top: 12 })
-
-          // 最近历史
-          Column() {
-            Row() {
-              Text('最近浏览').fontSize(16).fontWeight(FontWeight.Medium)
-              Blank()
-              Text('查看全部 >').fontSize(12).fontColor('#007AFF')
-            }
-            .width('100%').margin({ bottom: 10 })
-            .onClick(() => this.onShowAllHistory())
-            if (this.isLoadingHistory) {
-              LoadingView({ message: '加载中...' }).height(80)
-            } else if (this.recentHistory.length === 0) {
-              Text('暂无浏览记录').fontSize(13).fontColor('#999999').padding(20)
-                .width('100%').textAlign(TextAlign.Center)
-            } else {
-              ForEach(this.recentHistory, (item: HistoryItem) => {
-                Row() {
-                  Text(item.action === 'summarize' ? '🤖' : '👁️').fontSize(16)
-                  Text(item.content_preview || '(无内容)')
-                    .fontSize(13).fontColor('#333333').maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .layoutWeight(1).margin({ left: 10 })
-                  Text(item.action === 'summarize' ? '摘要' : '阅读')
-                    .fontSize(11).fontColor('#999999').backgroundColor('#F0F0F0')
-                    .borderRadius(4).padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                }
-                .width('100%').padding({ top: 8, bottom: 8 })
-                .onClick(() => this.onOpenHistoryItem(item))
-              })
-            }
           }
           .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(12)
           .margin({ left: 16, right: 16, top: 12 })
@@ -567,8 +549,20 @@ struct ProfileContent {
           }
           .width('100%').backgroundColor('#FFFFFF').borderRadius(12)
           .margin({ left: 16, right: 16, top: 12 })
+
+          // 退出登录按钮
+          Button('退出登录')
+            .type(ButtonType.Capsule)
+            .width('80%')
+            .height(42)
+            .fontSize(15)
+            .fontColor('#FF3B30')
+            .backgroundColor('#FFFFFF')
+            .border({ width: 1, color: '#FF3B30' })
+            .margin({ top: 24 })
+            .onClick(() => this.onLogout())
         }
-        .padding({ bottom: 24 })
+        .padding({ bottom: 40 })
       }
       .width('100%').layoutWeight(1).scrollBar(BarState.Off)
     }

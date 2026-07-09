@@ -4,13 +4,66 @@
 // ============================================
 
 import { ApiConfig } from './ApiConfig'
-import { get, post, del } from './ApiClient'
+import { get, post, put, del } from './ApiClient'
 import {
   NewsListResponse, NewsDetail, CategoriesResponse,
   SummaryResponse, SummaryRequest,
   FavoriteListResponse, FeedbackRequest,
-  HistoryListResponse, MessageResponse
+  HistoryListResponse, MessageResponse,
+  AuthResponse, AuthCredential, UpdateProfileBody, UserProfile
 } from '../models/NewsModel'
+
+// ============================================
+// 认证 API
+// ============================================
+
+/**
+ * 用户注册
+ */
+export async function registerUser(username: string, password: string): Promise<AuthResponse> {
+  const body: AuthCredential = new AuthCredential()
+  body.username = username
+  body.password = password
+  return post<AuthResponse>(ApiConfig.AUTH_REGISTER, body)
+}
+
+/**
+ * 用户登录
+ */
+export async function loginUser(username: string, password: string): Promise<AuthResponse> {
+  const body: AuthCredential = new AuthCredential()
+  body.username = username
+  body.password = password
+  return post<AuthResponse>(ApiConfig.AUTH_LOGIN, body)
+}
+
+/**
+ * 退出登录
+ */
+export async function logoutUser(): Promise<MessageResponse> {
+  return post<MessageResponse>(ApiConfig.AUTH_LOGOUT)
+}
+
+/**
+ * 获取用户资料
+ */
+export async function fetchUserProfile(): Promise<UserProfile> {
+  return get<UserProfile>(ApiConfig.AUTH_PROFILE)
+}
+
+/**
+ * 更新用户资料
+ */
+export async function updateUserProfile(username?: string, avatar?: string): Promise<AuthResponse> {
+  const body: UpdateProfileBody = new UpdateProfileBody()
+  if (username !== undefined) {
+    body.username = username
+  }
+  if (avatar !== undefined) {
+    body.avatar = avatar
+  }
+  return put<AuthResponse>(ApiConfig.AUTH_PROFILE, body)
+}
 
 // ============================================
 // 新闻 API
@@ -109,10 +162,18 @@ export async function fetchFavorites(
 /**
  * 获取操作历史
  */
-export async function fetchHistory(page: number, pageSize: number, action?: string): Promise<HistoryListResponse> {
+export async function fetchHistory(
+  page: number, pageSize: number, action?: string, category?: string, keyword?: string
+): Promise<HistoryListResponse> {
   let url: string = `${ApiConfig.HISTORY}?page=${page}&page_size=${pageSize}`
   if (action && action.length > 0) {
     url += `&action=${action}`
+  }
+  if (category && category.length > 0) {
+    url += `&category=${encodeURIComponent(category)}`
+  }
+  if (keyword && keyword.length > 0) {
+    url += `&keyword=${encodeURIComponent(keyword)}`
   }
   return get<HistoryListResponse>(url)
 }

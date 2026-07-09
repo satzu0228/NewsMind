@@ -2,6 +2,7 @@
 # 文件名: backend/models/models.py
 # 功能: SQLAlchemy ORM 数据库模型
 # 表:
+#   users     - 用户
 #   news      - 新闻文章
 #   summaries - 生成摘要记录
 #   favorites - 用户收藏
@@ -11,12 +12,29 @@
 
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Text, Float,
+    Column, Integer, String, Text, Float, Boolean,
     DateTime, ForeignKey, Enum as SQLEnum,
 )
 from sqlalchemy.orm import relationship
 
 from backend.database import Base
+
+
+class User(Base):
+    """
+    用户表
+    """
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="用户ID")
+    username = Column(String(50), unique=True, nullable=False, index=True, comment="用户名")
+    password_hash = Column(String(128), nullable=False, comment="密码哈希")
+    avatar = Column(String(10), default='😀', comment="头像 emoji")
+    token = Column(String(64), unique=True, nullable=True, index=True, comment="登录令牌")
+    created_at = Column(DateTime, default=datetime.now, comment="注册时间")
+
+    def __repr__(self):
+        return f"<User(id={self.id}, username='{self.username}')>"
 
 
 class News(Base):
