@@ -17,7 +17,6 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import get_linear_schedule_with_warmup
 from transformers import (
     AutoTokenizer,
     T5ForConditionalGeneration,
@@ -309,7 +308,8 @@ def main():
     print(f"  模型: {T5_MODEL_NAME}")
     print(f"  批次大小: {BATCH_SIZE}")
     print(f"  学习率: {LEARNING_RATE}")
-    print(f"  训练轮数: {NUM_EPOCHS}")
+    num_epochs = CPU_NUM_EPOCHS if DEVICE.type != "cuda" else NUM_EPOCHS
+    print(f"  训练轮数: {num_epochs}")
     print("=" * 60)
 
     # ========== 步骤1: 加载数据 ==========
@@ -416,7 +416,7 @@ def main():
 
     # 优化器和调度器
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    total_steps = len(train_loader) * NUM_EPOCHS
+    total_steps = len(train_loader) * num_epochs
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
         num_warmup_steps=min(WARMUP_STEPS, total_steps // 10),
@@ -429,9 +429,9 @@ def main():
     best_rouge = 0.0
     best_model_path = MODEL_DIR / "t5_summarizer_best"
 
-    for epoch in range(NUM_EPOCHS):
+    for epoch in range(num_epochs):
         print(f"\n{'='*40}")
-        print(f" Epoch {epoch + 1}/{NUM_EPOCHS}")
+        print(f" Epoch {epoch + 1}/{num_epochs}")
         print(f"{'='*40}")
 
         # 训练

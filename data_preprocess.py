@@ -48,6 +48,9 @@ TEST_RATIO = 0.15
 # 随机种子（保证结果可复现）
 RANDOM_SEED = 42
 
+# 每个分类最多读取的文章数。None 表示读取全量 THUCNews。
+MAX_FILES_PER_CATEGORY = 10000
+
 # 最大序列长度（用于后续BERT模型）
 MAX_SEQ_LENGTH = 512
 MIN_TEXT_LENGTH = 20  # 太短的新闻过滤掉
@@ -307,7 +310,10 @@ def load_raw_data():
             print(f"    [!] 未找到类别文件夹: {category}，跳过")
             continue
 
-        files = list(cat_dir.glob("*.txt"))
+        files = sorted(cat_dir.glob("*.txt"), key=lambda path: int(path.stem) if path.stem.isdigit() else path.name)
+        if MAX_FILES_PER_CATEGORY is not None and len(files) > MAX_FILES_PER_CATEGORY:
+            print(f"    [i] {category}: 共 {len(files)} 个文件，本次采样前 {MAX_FILES_PER_CATEGORY} 个")
+            files = files[:MAX_FILES_PER_CATEGORY]
         total_files += len(files)
 
         for file_path in tqdm(files, desc=f"  读取 [{category}]"):
@@ -592,7 +598,7 @@ def visualize_data(data: dict, stats: dict):
             if item['category'] == cat and item['length'] <= p99
         ]
 
-    bp = ax4.boxplot(box_data.values(), labels=box_data.keys(),
+    bp = ax4.boxplot(box_data.values(), tick_labels=box_data.keys(),
                      patch_artist=True, vert=True,
                      showfliers=False,  # 不显示离群点
                      widths=0.6)

@@ -47,12 +47,15 @@ npm-debug.log*
 
 # 数据库文件（本地自动生成，不入库）
 *.db
+*.db-wal
+*.db-shm
 
 # 数据集和模型文件（过大，不入库）
 /data/THUCNews/
 /data/processed/
 /data/__MACOSX/
 /trained_models/
+*.zip
 *.pth
 *.bin
 *.h5
