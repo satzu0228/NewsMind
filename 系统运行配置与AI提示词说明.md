@@ -223,236 +223,363 @@ http://127.0.0.1:8000/docs
 - 提交摘要评分和文字反馈后，反馈接口能正常写入。
 - 若展示模型指标，需提前准备 ROUGE-L 和耗时评估结果。
 
-## 五、主要接口说明
+
+## 五、AI 提示词说明
+
+本节中的“AI 提示词”是开发过程中用于指导 AI 辅助完成项目设计、代码实现、模块拆分和阶段交付的开发指令。本项目运行阶段不调用在线大语言模型 API，新闻摘要生成由 Python 后端中的本地 NLP 模型和算法流程完成。
+
+### 1. 开发提示词正文
 
 ```text
-GET    /news                  获取新闻列表，支持分类、关键词和分页
-GET    /news/categories/all   获取新闻类别
-GET    /news/{news_id}        获取新闻详情
-POST   /summary               生成新闻摘要
-POST   /favorite              添加收藏
-DELETE /favorite              取消收藏
-GET    /favorite              获取收藏列表
-GET    /history               获取操作历史
-POST   /feedback              提交摘要质量反馈
-GET    /feedback/stats        获取反馈统计
-GET    /health                后端健康检查
-```
+你是一位资深HarmonyOS开发工程师、Python后端工程师、AI算法工程师和系统架构师。
 
-## 六、AI 摘要流程说明
+请帮我完整设计并逐步实现一个真实可运行的HarmonyOS移动应用项目。
 
-系统摘要流程如下：
+项目名称：
 
-```text
-新闻原文
--> 文本清洗
--> 分句
--> BERT-base-chinese 生成句向量
--> TextRank 计算句子重要性
--> 提取 Top-K 关键句
--> T5 Transformer 生成式摘要
--> 质量检查与长度约束
--> 返回抽取式摘要、生成式摘要和生成耗时
-```
+《NewsMind——基于自然语言处理的智能新闻文章自动摘要系统设计与实现》
 
-核心代码位置：
+项目最终架构：
 
-```text
-backend/ai/summarizer.py
-backend/services/summary_service.py
-backend/routers/summary.py
-```
+HarmonyOS移动APP（ArkTS前端）
 
-训练代码位置：
+⇅ REST API
 
-```text
-backend/ai/train.py
-```
+Python后端（FastAPI）
 
-评估代码位置：
+⇅
 
-```text
-backend/ai/predict.py
-```
+BERT + TextRank + Transformer摘要模型
 
-## 七、AI 提示词说明
+⇅
 
-本项目没有调用在线大语言模型 API，摘要生成主要依赖本地 Hugging Face Transformers 模型。系统中“提示词”主要指传入 T5 生成模型的任务前缀模板。
+THUCNews数据集
 
-### 1. T5 摘要生成提示词模板
+注意：
 
-代码位置：
+ArkTS只负责前端页面和接口调用
 
-```text
-backend/ai/summarizer.py
-backend/ai/train.py
-```
+Python负责：
 
-提示词模板：
+- 数据处理
+- 模型训练
+- 摘要生成
+- 数据库
+- API
 
-```text
-summarize: {新闻文本或TextRank关键句}
-```
+不要将AI模型放在ArkTS端运行。
 
-含义：
+━━━━━━━━━━━━━━━
+【技术栈】
+━━━━━━━━━━━━━━━
 
-- `summarize:` 是 T5 模型的任务前缀，用于提示模型执行摘要生成任务。
-- `{新闻文本或TextRank关键句}` 是待摘要内容。
-- 在线推理时，系统优先将 TextRank 提取出的关键句输入 T5，以减少输入长度并提升生成速度。
+前端：
 
-示例：
+- HarmonyOS NEXT
+- ArkTS
+- ArkUI
+- Stage模型
+- Navigation
+- Axios
+- Preferences
 
-```text
-summarize: 人工智能技术正在加速应用于新闻编辑、医疗服务和智能制造等场景。多家企业表示，模型部署不仅需要关注准确率，也需要关注响应速度和用户反馈。
-```
+后端：
 
-预期输出：
+- Python
+- FastAPI
+- SQLAlchemy
+- SQLite
 
-```text
-本文介绍人工智能在多个行业中的应用，并强调模型部署需要兼顾准确率、响应速度和用户反馈。
-```
+AI：
 
-### 2. 训练阶段伪标签生成说明
+- HuggingFace Transformers
+- BERT
+- TextRank
+- Transformer Seq2Seq
 
-训练阶段使用 BERT + TextRank 为新闻生成伪摘要标签，再用伪标签微调 T5 模型。
+数据集：
 
-训练样本输入：
+THUCNews
 
-```text
-summarize: {新闻正文}
-```
+━━━━━━━━━━━━━━━
+【第一阶段：数据集处理（优先完成）】
+━━━━━━━━━━━━━━━
 
-训练样本目标：
+下载THUCNews后：
 
-```text
-{TextRank提取出的关键句摘要}
-```
+请先完成数据预处理流程：
 
-这样做的目的：
+1.读取THUCNews数据集
 
-- THUCNews 原始数据没有人工摘要标签。
-- TextRank 可从原文中自动提取高重要性句子。
-- 将 TextRank 结果作为伪标签，可以构造摘要训练数据。
-- T5 模型在伪标签上微调后，可生成更短、更自然的摘要文本。
+目录示例：
 
-### 3. TextRank 关键句抽取参数
+THUCNews/
 
-TextRank 不使用自然语言提示词，而是使用算法参数控制摘要长度和排序逻辑。
+├── 科技
+├── 体育
+├── 财经
+├── 娱乐
+├── 教育
+├── 时政
 
-主要参数：
+2.文本清洗：
 
-```text
-TEXTRANK_TOP_K = 5
-TEXTRANK_DAMPING = 0.85
-TEXTRANK_MAX_ITER = 100
-TEXTRANK_CONVERGENCE = 1e-6
-TEXTRANK_MIN_SENTENCE_LENGTH = 5
-```
+实现：
 
-说明：
+- 去HTML标签
+- 去特殊字符
+- 去空白字符
+- 去URL
+- 去重复数据
 
-- `TEXTRANK_TOP_K` 控制抽取关键句数量。
-- `TEXTRANK_DAMPING` 为 PageRank 阻尼系数。
-- 系统通过 BERT 句向量相似度构建句子图，再用 TextRank 排序。
+3.中文分词：
 
-### 4. 摘要质量控制策略
+使用：
 
-系统对生成摘要做了基础质量控制：
+jieba
 
-- 摘要为空或过短时回退到 TextRank 摘要。
-- 生成结果明显异常时回退到演示摘要或抽取式摘要。
-- 摘要过长时按 `SUMMARY_MAX_LENGTH` 截断。
-- 摘要与原文过于接近时重新压缩。
-- 接口返回 `inference_time`，用于检查单篇摘要生成时间。
+4.停用词处理：
 
-### 5. 用户反馈优化说明
+去除停用词
 
-用户可在 App 中对摘要质量进行评分并填写文字反馈。反馈数据会写入数据库中的 `feedback` 表。
+5.构建训练集：
 
-相关接口：
+输出：
 
-```text
+train.json
+
+格式：
+
+{
+    "category":"科技",
+    "content":"新闻正文"
+}
+
+6.划分数据集：
+
+训练集：
+
+70%
+
+验证集：
+
+15%
+
+测试集：
+
+15%
+
+7.统计数据：
+
+输出：
+
+- 各类别数量
+- 平均文本长度
+- 最大长度
+- 最小长度
+
+8.数据可视化：
+
+生成：
+
+- 类别分布图
+- 文本长度分布图
+
+要求：
+
+输出完整Python代码
+
+文件名：
+
+data_preprocess.py
+
+必须可直接运行
+
+添加中文注释
+
+━━━━━━━━━━━━━━━
+【第二阶段：AI摘要模块】
+━━━━━━━━━━━━━━━
+
+实现：
+
+新闻文本
+
+↓
+
+文本清洗
+
+↓
+
+BERT向量表示
+
+↓
+
+TextRank提取关键句
+
+↓
+
+Transformer生成摘要
+
+↓
+
+ROUGE-L评估
+
+要求：
+
+ROUGE-L≥0.4
+
+单篇摘要时间：
+
+<1.5秒
+
+输出：
+
+完整训练代码：
+
+train.py
+
+完整预测代码：
+
+predict.py
+
+模型保存代码：
+
+save_model.py
+
+━━━━━━━━━━━━━━━
+【第三阶段：Python后端】
+━━━━━━━━━━━━━━━
+
+使用：
+
+FastAPI
+
+设计接口：
+
+GET /news
+
+GET /news/{id}
+
+POST /summary
+
+POST /favorite
+
+DELETE /favorite
+
+GET /history
+
 POST /feedback
-GET  /feedback/stats
+
+输出：
+
+请求参数
+
+JSON返回格式
+
+完整代码
+
+━━━━━━━━━━━━━━━
+【第四阶段：HarmonyOS前端】
+━━━━━━━━━━━━━━━
+
+APP名称：
+
+NewsMind
+
+页面：
+
+1 首页
+
+功能：
+
+- 新闻分类
+- 搜索
+- 新闻列表
+- 下拉刷新
+
+2 新闻详情页
+
+功能：
+
+- 正文展示
+- 一键生成摘要
+- 收藏
+- 分享
+
+3 收藏页
+
+4 我的页面
+
+使用：
+
+- ArkTS
+- ArkUI
+- Navigation
+- Tabs
+- List
+- Grid
+
+输出完整：
+
+页面代码
+
+组件代码
+
+接口调用代码
+
+文件名必须标明
+
+━━━━━━━━━━━━━━━
+【项目目录结构】
+━━━━━━━━━━━━━━━
+
+NewsMind
+
+├── frontend
+│   ├── pages
+│   ├── components
+│   ├── api
+│   └── utils
+
+├── backend
+│   ├── routers
+│   ├── models
+│   ├── services
+│   ├── ai
+│   └── database
+
+├── data
+│   └── THUCNews
+
+├── trained_models
+
+└── docs
+
+━━━━━━━━━━━━━━━
+【输出要求】
+━━━━━━━━━━━━━━━
+
+1 不允许伪代码
+
+2 每个文件标注文件名
+
+3 每段代码添加中文注释
+
+4 每完成一步暂停
+
+5 从第一阶段数据处理开始
+
+6 不允许跳步骤
 ```
 
-反馈字段包括：
+### 2. 提示词作用说明
 
-```text
-news_id
-summary_id
-rating
-comment
-created_at
-```
+该提示词用于约束 AI 辅助开发时的项目方向和交付顺序，重点包括：
 
-当前系统已实现反馈采集和统计。后续可将低评分摘要加入人工复核集，将高评分摘要作为优质样本，用于下一轮模型微调，从而形成“用户反馈 -> 样本筛选 -> 模型再训练 -> 摘要质量提升”的优化闭环。
+- 明确 NewsMind 的总体架构为 HarmonyOS ArkTS 前端、FastAPI 后端和 Python AI 摘要模块。
+- 明确 ArkTS 只负责页面展示和 REST API 调用，AI 模型、数据库、训练和摘要生成均放在 Python 后端。
+- 明确开发顺序从 THUCNews 数据预处理开始，再实现摘要模块、后端接口和前端页面。
+- 明确每个阶段需要输出真实可运行代码，避免只给伪代码或跳过关键实现。
 
-## 八、评估指标说明
-
-系统目标指标：
-
-```text
-ROUGE-L >= 0.4
-单篇摘要生成时间 < 1.5 秒
-```
-
-评估命令：
-
-```bash
-python -m backend.ai.predict --eval data/processed/test.json
-```
-
-评估输出建议保存为：
-
-```text
-evaluation_result.json
-```
-
-建议在答辩材料中展示：
-
-- 平均 ROUGE-L
-- 最大 ROUGE-L
-- 最小 ROUGE-L
-- 单篇平均生成耗时
-- 单篇最大生成耗时
-- 是否满足 `ROUGE-L >= 0.4`
-- 是否满足 `单篇摘要生成时间 < 1.5 秒`
-
-## 九、源码压缩包建议结构
-
-课程要求压缩包命名格式：
-
-```text
-小组长学号-姓名-项目名称-代码.zip
-```
-
-建议压缩包至少包含：
-
-```text
-NewsMind/
-  AppScope/
-  entry/
-  backend/
-  scripts/
-  data_preprocess.py
-  requirements.txt
-  README.md
-  系统运行配置与AI提示词说明.md
-```
-
-可不放入 Git 仓库或压缩包的大文件：
-
-```text
-newsmind.db
-data/THUCNews/
-data/processed/
-trained_models/
-*.zip
-*.pth
-*.bin
-*.h5
-```
-
-如现场验收使用本机运行，需要提前在本机准备好数据库、模型和数据目录。
 
