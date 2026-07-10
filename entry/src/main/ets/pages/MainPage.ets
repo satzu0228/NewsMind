@@ -114,11 +114,20 @@ struct HomeContent {
     this.loadNewsList()
   }
 
+  private totalText(): string {
+    if (this.isSearchMode && this.totalCount > this.newsList.length) {
+      return `${this.newsList.length}+ 篇`
+    }
+    return `${this.totalCount} 篇`
+  }
+
   private async loadNewsList(isRefresh: boolean = false): Promise<void> {
     if (this.isLoading) return
     if (isRefresh) {
       this.isRefreshing = true
       this.currentPage = 1
+      this.newsList = []
+      this.totalCount = 0
     } else {
       this.isLoading = true
     }
@@ -161,7 +170,7 @@ struct HomeContent {
           .fontWeight(FontWeight.Bold)
         Blank()
         if (this.totalCount > 0) {
-          Text(`${this.totalCount} 篇`)
+          Text(this.totalText())
             .fontSize(13)
             .fontColor('#999999')
         }

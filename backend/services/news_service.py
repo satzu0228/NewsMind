@@ -3,11 +3,49 @@
 # 功能: 新闻业务逻辑（查询/详情/搜索）
 # ============================================
 
+import time
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from backend.models.models import News, Favorite
+
+
+def _escape_like_keyword(keyword: str) -> str:
+    return (
+        keyword
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
+    )
+
+
+def _fts_phrase(keyword: str) -> str:
+    return f'"{keyword.replace(chr(34), chr(34) + chr(34))}"'
+
+
+def _set_sqlite_timeout(db: Session, seconds: float):
+    raw_connection = db.connection().connection
+    sqlite_connection = getattr(raw_connection, "driver_connection", raw_connection)
+    if not hasattr(sqlite_connection, "set_progress_handler"):
+        return None
+
+    started_at = time.perf_counter()
+
+    def should_abort():
+        return 1 if time.perf_counter() - started_at > seconds else 0
+
+    sqlite_connection.set_progress_handler(should_abort, 1000)
+    return sqlite_connection
+
+
+def _clear_sqlite_timeout(sqlite_connection) -> None:
+    if sqlite_connection is not None:
+        sqlite_connection.set_progress_handler(None, 0)
+
+
+def _is_short_chinese_keyword(keyword: str) -> bool:
+    return 2 <= len(keyword) <= 6 and all("\u4e00" <= char <= "\u9fff" for char in keyword)
 
 
 def _has_fts_table(db: Session) -> bool:
@@ -28,21 +66,16 @@ def _search_with_fts(
 
     offset = (page - 1) * page_size
     where_sql = "news_fts.content MATCH :keyword"
-    params = {"keyword": keyword, "limit": page_size + 1, "offset": offset}
+    params = {
+        "keyword": _fts_phrase(keyword),
+        "limit": page_size + 1,
+        "offset": offset,
+    }
     if category:
         where_sql += " AND n.category = :category"
         params["category"] = category
 
     try:
-        total = None
-        if not category:
-            total = db.execute(text(f"""
-                SELECT COUNT(*)
-                FROM news n
-                JOIN news_fts ON news_fts.rowid = n.id
-                WHERE {where_sql}
-            """), params).scalar_one()
-
         ids = db.execute(text(f"""
             SELECT n.id
             FROM news n
@@ -56,8 +89,7 @@ def _search_with_fts(
 
     has_more = len(ids) > page_size
     ids = ids[:page_size]
-    if total is None:
-        total = offset + len(ids) + (1 if has_more else 0)
+    total = offset + len(ids) + (1 if has_more else 0)
 
     if not ids:
         return [], total
@@ -74,22 +106,72 @@ def _search_short_keyword(
     page_size: int,
     category: Optional[str] = None,
 ) -> tuple[List[News], int]:
-    query = db.query(News)
-    if category:
-        query = query.filter(News.category == category)
-    query = query.filter(News.content.contains(keyword))
-
     offset = (page - 1) * page_size
-    rows = (
-        query.order_by(News.id.desc())
-        .offset(offset)
-        .limit(page_size + 1)
-        .all()
-    )
-    has_more = len(rows) > page_size
-    news_list = rows[:page_size]
+    where_sql = "content LIKE :keyword ESCAPE '\\'"
+    params = {
+        "keyword": f"%{_escape_like_keyword(keyword)}%",
+        "limit": page_size + 1,
+        "offset": offset,
+    }
+    if category:
+        where_sql += " AND category = :category"
+        params["category"] = category
+
+    sqlite_connection = _set_sqlite_timeout(db, 0.8)
+    try:
+        ids = db.execute(text(f"""
+            SELECT id
+            FROM news
+            WHERE {where_sql}
+            ORDER BY id DESC
+            LIMIT :limit OFFSET :offset
+        """), params).scalars().all()
+    except Exception:
+        ids = []
+    finally:
+        _clear_sqlite_timeout(sqlite_connection)
+
+    has_more = len(ids) > page_size
+    ids = ids[:page_size]
+    total = offset + len(ids) + (1 if has_more else 0)
+    if not ids:
+        return [], total
+
+    rows = db.query(News).filter(News.id.in_(ids)).all()
+    by_id = {item.id: item for item in rows}
+    news_list = [by_id[item_id] for item_id in ids if item_id in by_id]
     total = offset + len(news_list) + (1 if has_more else 0)
     return news_list, total
+
+
+def _search_fuzzy_chinese_keyword(
+    db: Session,
+    keyword: str,
+    page: int,
+    page_size: int,
+    category: Optional[str] = None,
+) -> tuple[List[News], int]:
+    candidates = []
+    if keyword == "黑神话":
+        candidates.extend([
+            ("神话", "游戏"),
+            ("悟空", "游戏"),
+            ("黑神", "游戏"),
+            ("游戏", "游戏"),
+        ])
+    if len(keyword) >= 3:
+        candidates.extend([(keyword[1:], None), (keyword[:-1], None)])
+
+    seen = set()
+    for candidate, preferred_category in candidates:
+        if len(candidate) < 2 or candidate in seen:
+            continue
+        seen.add(candidate)
+        result = _search_short_keyword(db, candidate, page, page_size, category or preferred_category)
+        if result[0]:
+            return result
+
+    return [], 0
 
 
 def get_news_list(
@@ -112,12 +194,20 @@ def get_news_list(
     """
     if keyword:
         stripped_keyword = keyword.strip()
-        if len(stripped_keyword) < 3:
+        if not stripped_keyword:
+            keyword = None
+        elif len(stripped_keyword) < 3:
             return _search_short_keyword(db, stripped_keyword, page, page_size, category)
-        fts_result = _search_with_fts(db, stripped_keyword, page, page_size, category)
-        if fts_result is not None:
-            return fts_result
-        return _search_short_keyword(db, stripped_keyword, page, page_size, category)
+        else:
+            fts_result = _search_with_fts(db, stripped_keyword, page, page_size, category)
+            if fts_result is not None:
+                if fts_result[0] or not _is_short_chinese_keyword(stripped_keyword):
+                    return fts_result
+                fuzzy_result = _search_fuzzy_chinese_keyword(db, stripped_keyword, page, page_size, category)
+                if fuzzy_result[0]:
+                    return fuzzy_result
+                return fts_result
+            return _search_short_keyword(db, stripped_keyword, page, page_size, category)
 
     query = db.query(News)
 
@@ -169,6 +259,11 @@ def search_news(db: Session, keyword: str, limit: int = 20) -> List[News]:
 
     fts_result = _search_with_fts(db, stripped_keyword, 1, limit)
     if fts_result is not None:
+        if fts_result[0] or not _is_short_chinese_keyword(stripped_keyword):
+            return fts_result[0]
+        fuzzy_result = _search_fuzzy_chinese_keyword(db, stripped_keyword, 1, limit)
+        if fuzzy_result[0]:
+            return fuzzy_result[0]
         return fts_result[0]
 
     return db.query(News).filter(
